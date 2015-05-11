@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+<project name="camp-testuff" default="main">
+<!-- properies -->
+<property file="./build.properties" />
+
+<!-- 定义classpath -->
+<path id="master-classpath">
+  <fileset file="${lib.dir}/*.jar"/>
+  <pathelement path="${classes.dir}" />
+  <pathelement path="${resources.dir}" />
+  <pathelement path="${src.dir}" />
+</path>
+
+<!-- 初始化任务 -->
+<target name="init">
+  <java jar="${selenimhome}/selenium-server-standalone-2.34.0.jar" fork="true" spawn="true" />
+</target>
+
+<!--下载更新build-->
+<target name="download" if="isdowload">
+  <get src="${targeturl}" dest="${filePath.dir}/${filename}" verbose="true" usetimestamp="true" />
+</target>
+
+
+<!--更新编绎war文件-->
+<target name="war" depends="download">
+  <unwar src="${filePath.dir}/${filename}" dest="${filePath.dir}/project" />
+  <propertyfile file="${filePath.dir}/project/WEB-INF/classes/jdbc.properties" comment="My properties">
+   <entry key="jdbc.url" value="${jdbc.url}" />
+   <entry key="jdbc.username" value="${jdbc.username}" />
+   <entry key="jdbc.password" value="${jdbc.password}" />
+  </propertyfile>
+
+  <propertyfile file="${filePath.dir}/project/WEB-INF/classes/systemConfiguration.properties" comment="My properties">
+   <entry key="mail.host" value="${mail.host}" />
+  </propertyfile>
+
+  <war destfile="${filePath.dir}/${projectfile}" needxmlfile="false">
+   <fileset dir="${filePath.dir}/project" includes="**/*.*" />
+  </war>
+</target>
+
+<!-- 部署项目 -->
+<target name="deploy">
+  <mkdir dir="${tomcatlog.dir}" />
+  <mkdir dir="${tomcatconfig.dir}" />
+  <taskdef resource="cargo.tasks">
+   <classpath>
+    <pathelement location="${cargo-uberjar}" />
+    <pathelement location="${cargo-antjar}" />
+   </classpath>
+  </taskdef>
+
+  <cargo containerId="tomcat5x" home="D:\tomcat" output="${tomcatlog.dir}/output.log" log="${tomcatlog.dir}/cargo.log" action="start" failonerror="false" wait="false">
+   <configuration home="${tomcatconfig.dir}">
+    <property name="cargo.servlet.port" value="8080" />
+    <property name="cargo.logging" value="high" />
+    <property name="cargo.jvmargs" value="-Xmx500m"/>
+    <deployable type="war" file="${filePath.dir}/${projectfile}" />
+   </configuration>
+  </cargo>
+</target>
+
+<!-- 编译脚本-->
+<target name="compile"  description="compile the source files">
+  <mkdir dir="${classes.dir}" />
+  <javac srcdir="${src.dir}" failonerror="false" destdir="${classes.dir}">
+   <include name="**/*.*" />
+   <exclude name="**/*ViewCustomerTest.*" />
+   <exclude name="**/*SubmittingMaintenanceApplicationTest.*" />
+   <exclude name="**/*SubmittingMaintenanceApplicationTest.*" />
+   <exclude name="**/*AddMaintenance.*" />
+   <exclude name="**/*EditMaintenance.*" />
+   <classpath refid="master-classpath" />
+  </javac>
+</target>
+
+<!-- 测试 Junit脚本-->
+<target name="test" description="run junit test">
+  <tstamp>
+   <format property="stratTime" pattern="MM/dd/yyyy  HH:mm:ss" />
+  </tstamp>
+  <mkdir dir="${report.dir}" />
+  <junit printsummary="on" haltonfailure="false" failureproperty="tests.failed" showoutput="true">
+   <classpath refid="master-classpath" />
+   <formatter type="xml" />
+
+   <batchtest todir="${report.dir}">
+    <fileset dir="${src.dir}">
+     <include name="${testname}" />
+     <exclude name="**/*ViewCustomerTest.*"/>
+     <exclude name="**/*SubmittingMaintenanceApplicationTest.*"/>
+     <exclude name="**/*SubmittingMaintenanceApplicationTest.*"/>
+     <exclude name="**/*AddMaintenance.*"/>
+     <exclude name="**/*EditMaintenance.*"/>
+
+    </fileset>
+   </batchtest>
+  </junit>
+</target>
+
+  <!-- 生成报告 -->
+<target name="junitreport" depends="test">
+  <mkdir dir="${report.dir}/html" />
+  <junitreport todir="${report.dir}">
+   <fileset dir="${report.dir}" includes="TEST-*.xml" />
+   <report format="frames" todir="${report.dir}/html" />
+  </junitreport>
+</target>
+
+<!-- 发送测试结果 -->
+<target name="SendEmail" depends="junitreport">
+  <tstamp>
+   <format property="endTime" pattern="MM/dd/yyyy HH:mm:ss " />
+   <format property="endTime2" pattern="MM/dd/yyyy " />
+   <format property="endTime3" pattern="yyyyMMddHHmmss " />
+  </tstamp>
+  <zip destfile="${report.dir}/html/Report.zip">
+   <zipfileset dir="${report.dir}/html" includes="**/*.*" />
+  </zip>
+  <mail mailhost="${host}" messagemimetype="${messagetype}"
+   mailport="${mailport}" subject="Test Report_${endTime3}"
+   user="${user}" password="${password}" messagefile="${messagefile}"
+   tolist="${tolist}" cclist="${cclist}">
+   <from name="${fromname}" address="${fromaddress}" />
+   <attachments>
+    <fileset dir="${report.dir}/html">
+     <include name="*Report.zip" />
+    </fileset>
+   </attachments>
+  </mail>
+</target>
+
+<!-- 清除生成文件（报告） -->
+<target name="clean">
+  <delete dir="${tomcatconfig.dir}" />
+  <delete dir="${report.dir}" />
+  <delete dir="${classes.dir}" />
+  <delete file="${filePath.dir}/project.war" />
+  <delete dir="${filePath.dir}/project" />
+  <sql driver="org.gjt.mm.mysql.Driver"
+      url="jdbc:mysql://${jdbc.urlAndPort}"
+      userid="${jdbc.username}"
+      password="${jdbc.password}"
+      >
+   drop schema ${jdbc.schema};
+   <classpath location="${lib.dir}/mysql-connector-java-5.0.5.jar"/>
+  </sql>
+</target>
+
+<!-- 测试完成关闭计算机 -->
+<target name="shutDown">
+  <sleep minutes="2" />
+  <exec executable="shutdown">
+   <arg value="-s -t 60" />
+  </exec>
+</target>
+
+<!-- Stop tomcat -->
+<target name="stoptomcat">
+  <taskdef resource="cargo.tasks">
+   <classpath>
+    <pathelement location="${cargo-uberjar}" />
+    <pathelement location="${cargo-antjar}" />
+   </classpath>
+  </taskdef>
+
+  <cargo containerId="tomcat5x" home="D:\tomcat" action="stop">
+   <configuration home="${tomcatconfig.dir}"/>
+  </cargo>
+</target>
+
+<!-- 主要目标 -->
+<target name="main">
+  <!-- 清理并初始化环境
+  <antcall target="clean" />-->
+  <antcall target="init" />
+  <!-- 部署项目 
+  <antcall target="war" />
+  <antcall target="deploy" />-->
+  <!-- 编译脚本 -->
+  <antcall target="compile" />
+  <!-- 测试并发送报告 -->
+  <antcall target="SendEmail" />
+  <antcall target="stoptomcat" />
+  <antcall target="shutDown" />
+</target>
+
+</project>

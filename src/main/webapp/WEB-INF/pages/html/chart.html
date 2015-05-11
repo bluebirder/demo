@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Flotr2 图表演示</title>
+<style type="text/css">
+body {
+  margin: 0px;
+  padding: 0px;
+}
+
+h1, h2 {
+  margin: 10px;
+}
+
+h3 {
+ width: 500px;
+ margin: 8px auto;
+}
+
+.chart {
+  width: 500px;
+  height: 300px;
+  margin: 8px auto;
+}
+</style>
+</head>
+<body>
+<h1>Flotr2 图表演示</h1>
+<h2><a href="http://www.humblesoftware.com/flotr2/documentation" target="_blank">查看使用文档</a></h2>
+
+<h3>柱状图</h3>
+<div id="container-0" class="chart"></div>
+<h3>雷达图</h3>
+<div id="container-1" class="chart"></div>
+<h3>饼图</h3>
+<div id="container-2" class="chart"></div>
+<h3>折线图</h3>
+<div id="container-3" class="chart"></div>
+<div style="display: none">
+<div id="container-4" class="chart"></div>
+<div id="container-5" class="chart"></div>
+<div id="container-6" class="chart"></div>
+</div>
+<!--[if IE]>
+<script src="../js/flashcanvas/flashcanvas.js"></script>
+<![endif]-->
+<script src="../js/flotr2.min.js"></script>
+<script>
+(function basic_bars(container, horizontal) {
+  var horizontal = (horizontal ? true : false), // Show horizontal bars
+      d1 = [],                                  // First data series
+      d2 = [],                                  // Second data series
+      point;                                    // Data point variable declaration
+
+  for (var i = 0; i < 4; i++) {
+    if (horizontal) {
+      point = [Math.ceil(Math.random()*10), i];
+    } else {
+      point = [i, Math.ceil(Math.random()*10)];
+    }
+
+    d1.push(point);
+
+    if (horizontal) {
+      point = [Math.ceil(Math.random()*10), i+0.5];
+    } else {
+      point = [i+0.5, Math.ceil(Math.random()*10)];
+    }
+
+    d2.push(point);
+  };
+
+  // Draw the graph
+  Flotr.draw(container, [d1, d2], {
+    bars : { show : true, horizontal : horizontal, shadowSize : 0, barWidth : 0.5 },
+    mouse : { track : true, relative : true },
+    yaxis : { min : 0, autoscaleMargin : 1 }
+  });
+})(document.getElementById("container-0"));
+
+// 雷达图
+(function basic_radar(container) {
+  // Fill series s1 and s2
+  var s1 = { label : '2011年', data : [[0, 3], [1, 8], [2, 5], [3, 5], [4, 3], [5, 9], [0, 10]] },
+      s2 = { label : '2012年', data : [[0, 8], [1, 7], [2, 8], [3, 2], [4, 4], [5, 7], [0, 1]] },
+      graph, ticks;
+
+  // Radar Labels
+  ticks = [
+    [0, "权利"],
+    [1, "敏捷"],
+    [2, "智力"],
+    [3, "政治"],
+    [4, "武力"],
+    [5, "体力"],
+    [6, "瞎搞"]
+  ];
+
+  // Draw the graph
+  graph = Flotr.draw(container, [ s1, s2 ], {
+    radar : { show : true},
+    grid  : { circular : true, minorHorizontalLines : true},
+    yaxis : { min : 0, max : 10, minorTickFreq : 2},
+    xaxis : { ticks : ticks}
+  });
+})(document.getElementById("container-1"));
+
+// 饼图
+(function basic_pie(container) {
+  var
+    d1 = [[0, 55]],
+    d2 = [[0, 12]],
+    d3 = [[0, 8]],
+    d4 = [[0, 25]],
+    graph;
+
+  graph = Flotr.draw(container, [
+    { data : d1, label : '一班',  
+      pie : {
+        explode : 0
+      }
+    },
+    { data : d2, label : '二班',  
+      pie : {
+        explode : 0
+      }
+    },
+    { data : d3, label : '三班',
+      pie : {
+        explode : 50
+      }
+    },
+    { data : d4, label : '四班',  
+      pie : {
+        explode : 0
+      }
+    }
+  ], {
+    HtmlText : false,
+    grid : {
+      verticalLines : false,
+      horizontalLines : false
+    },
+    xaxis : { showLabels : false },
+    yaxis : { showLabels : false },
+    pie : {
+      show : true,
+      explode : 6
+    },
+    mouse : { track : true },
+    legend : {
+      position : 'se',
+      backgroundColor : '#D2E8FF'
+    }
+  });
+})(document.getElementById("container-2"));
+
+// 折线图
+(function basic(container) {
+  var
+    d1 = [ [0, 3], [1, 7], [3, 3], [5, 6], [7, 7], [9, 12], [11, 6] ], // First data series
+    d2 = [],                                // Second data series
+    i, graph;
+
+  // Generate first data set
+  for (i = 0; i < 14; i += 0.5) {
+    d2.push([i, Math.sin(i)]);
+  }
+
+  // Draw Graph
+  graph = Flotr.draw(container, [ d1, d2 ], {
+    xaxis: {
+      minorTickFreq: 4,
+      max: 14
+    },
+    yaxis: {
+      max: 18
+    },
+    grid: {
+      minorVerticalLines: true
+    }
+  });
+})(document.getElementById("container-3"));
+</script>
+</body>
+</html>
